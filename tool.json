@@ -1,0 +1,13 @@
+{
+  "id": "w12",
+  "slug": "script-quick-reply",
+  "name": "私域话术库快捷回复",
+  "version": "0.1.0",
+  "repo": "campfire-code/script-quick-reply",
+  "license": "MIT",
+  "ui": {
+    "layout": "a",
+    "palette": "blue"
+  },
+  "upstream": null
+}

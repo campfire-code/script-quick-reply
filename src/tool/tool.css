@@ -1,0 +1,74 @@
+/* 私域话术库：只用 kit.css 的变量，适配 6 套布局与亮暗色 */
+.sq { flex: 1; display: flex; flex-direction: column; gap: 12px; container-type: inline-size; min-width: 0; }
+.sq-bar { position: sticky; top: 0; z-index: 3; display: flex; align-items: center; gap: 8px; padding: 8px; }
+.sq-search { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 6px 0 10px; border: 1px solid var(--line); border-radius: min(var(--radius), 10px); background: var(--bg); color: var(--muted); }
+.sq-search:focus-within { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); color: var(--primary); }
+.sq-search-input { flex: 1; min-width: 0; border: 0; outline: none; background: transparent; color: var(--ink); height: 100%; font-size: 1.02em; }
+.sq-search-input::placeholder { color: var(--muted); }
+.sq-menu-wrap { position: relative; }
+.sq-menu { position: absolute; right: 0; top: 40px; z-index: 10; width: 260px; display: grid; padding: 6px; box-shadow: 0 12px 32px rgba(0, 0, 0, .18); }
+.sq-menu button { display: grid; gap: 2px; text-align: left; padding: 8px 10px; border: 0; background: none; border-radius: 6px; cursor: pointer; }
+.sq-menu button:hover { background: var(--chip); }
+.sq-menu small { color: var(--muted); font-size: .86em; }
+.sq-tip { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 8px 12px; border-radius: min(var(--radius), 10px); background: var(--primary-soft); color: var(--ink); font-size: .95em; }
+.sq-tip span { flex: 1; min-width: 200px; }
+
+.sq-body { flex: 1; display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 12px; align-items: start; min-height: 0; }
+.sq-tree { position: sticky; top: 64px; display: flex; flex-direction: column; gap: 1px; padding: 6px; max-height: calc(100vh - 150px); overflow: auto; }
+.sq-node { display: flex; align-items: center; justify-content: space-between; gap: 6px; width: 100%; min-width: 0; padding: 6px 8px; border: 0; border-radius: 6px; background: none; color: var(--ink); cursor: pointer; text-align: left; }
+.sq-node span { display: inline-flex; align-items: center; gap: 4px; min-width: 0; }
+.sq-node i { font-style: normal; font-size: .85em; color: var(--muted); font-variant-numeric: tabular-nums; }
+.sq-node:hover { background: var(--chip); }
+.sq-node.on { background: var(--primary-soft); color: var(--primary); font-weight: 600; }
+.sq-node.on i { color: var(--primary); }
+.sq-node-row { position: relative; display: flex; align-items: center; }
+.sq-node-row.sub .sq-node { padding-left: 22px; }
+.sq-node-row.sub .sq-node::before { content: ""; position: absolute; left: 12px; top: 6px; bottom: 6px; width: 1px; background: var(--line-strong); }
+.sq-node-ops { position: absolute; right: 2px; display: none; background: var(--surface); border-radius: 6px; }
+.sq-node-ops .k-icon-btn { width: 22px; height: 22px; }
+.sq-node-row:hover .sq-node-ops, .sq-node-row:focus-within .sq-node-ops { display: inline-flex; }
+.sq-node-row:hover .sq-node i { visibility: hidden; }
+.sq-tree-sep { height: 1px; background: var(--line); margin: 4px 2px; flex: none; }
+.sq-add { color: var(--muted); margin-top: 4px; }
+
+.sq-list { min-width: 0; }
+.sq-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+.sq-card { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); min-width: 0; transition: border-color .15s var(--ease), box-shadow .15s var(--ease); }
+html[data-layout="e"] .sq-card { border-radius: 14px; }
+.sq-card.sel { border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary-soft); }
+.sq-card-hd { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.sq-card-hd b { flex: 1; }
+.sq-tag { flex: none; display: inline-flex; align-items: center; gap: 3px; font-size: .8em; padding: 0 7px; border-radius: 999px; background: var(--chip); color: var(--muted); line-height: 1.7; }
+.sq-tag.pin { background: var(--primary-soft); color: var(--primary); }
+.sq-text { flex: none; display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; white-space: pre-wrap; text-align: left; border: 0; padding: 0; background: none; color: var(--ink); cursor: copy; line-height: 1.65; font-size: .97em; user-select: text; }
+.sq-var { color: var(--primary); background: var(--primary-soft); border-radius: 4px; padding: 0 2px; }
+.sq-card-ft { margin-top: auto; display: flex; align-items: center; gap: 2px; min-width: 0; padding-top: 4px; border-top: 1px dashed var(--line); }
+.sq-cat { flex: 1; font-size: .85em; color: var(--muted); }
+.sq-copy { height: 28px; padding: 0 10px; margin-left: 4px; }
+.sq-card.sel .sq-copy { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
+.sq-empty { display: grid; gap: 6px; justify-items: center; text-align: center; padding: 48px 16px; }
+
+.sq-mask { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 20px; background: rgba(0, 0, 0, .38); }
+.sq-dialog { width: min(560px, 100%); max-height: calc(100vh - 40px); overflow: auto; padding: 18px 20px; box-shadow: 0 20px 48px rgba(0, 0, 0, .28); }
+.sq-form { display: grid; gap: 14px; }
+.sq-form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+.sq-form-ft { display: flex; justify-content: flex-end; align-items: center; gap: 8px; }
+.sq-form-ft .k-help { margin-right: auto; }
+.sq-insert { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.sq-insert .k-chip { padding: 2px 10px; font-size: .86em; }
+.sq-preview { white-space: pre-wrap; line-height: 1.7; padding: 10px 12px; border-radius: min(var(--radius), 10px); background: var(--chip); max-height: 200px; overflow: auto; user-select: text; }
+.sq-danger { background: var(--err); border-color: var(--err); color: var(--on-primary); }
+
+/* 窗口较窄（如极简单窗布局）时，分类变成横向一排 */
+@container (max-width: 560px) {
+  .sq-body { grid-template-columns: minmax(0, 1fr); }
+  .sq-tree { position: static; flex-direction: row; flex-wrap: nowrap; overflow-x: auto; max-height: none; }
+  .sq-tree .sq-node, .sq-node-row { width: auto; flex: none; }
+  .sq-node-row.sub .sq-node { padding-left: 8px; }
+  .sq-node-row.sub .sq-node::before { display: none; }
+  .sq-tree-sep { width: 1px; height: auto; margin: 2px 4px; }
+  .sq-node i { margin-left: 4px; }
+  .sq-bar { flex-wrap: wrap; }
+  .sq-search { flex-basis: 100%; }
+}
+.sq-search-input:focus-visible { outline: none; }
