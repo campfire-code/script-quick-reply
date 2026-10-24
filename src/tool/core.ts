@@ -247,6 +247,7 @@ export function fromJson(text: string): ParsedImport {
   }
   const obj = data as { scripts?: unknown; cats?: unknown };
   const list = Array.isArray(data) ? data : Array.isArray(obj?.scripts) ? obj.scripts : null;
+  // check-zh: 忽略（scripts 是备份文件里的字段名）
   if (!list) throw new Error('JSON 里没有找到话术列表（需要是数组，或包含 scripts 数组）');
   const pick = (o: Record<string, unknown>, k: keyof typeof HEAD_ALIASES) => {
     for (const a of HEAD_ALIASES[k]) if (a in o) return o[a];

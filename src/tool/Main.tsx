@@ -21,6 +21,10 @@ type Dialog =
   | { kind: 'cat'; from: string | null; value: string }
   | null;
 
+// check-zh: 忽略（拼音首字母示例，cd 是「催单」的缩写）
+const SEARCH_HINT = '搜关键词或拼音首字母（cd = 催单），回车复制';
+// check-zh: 忽略（键盘上印的就是 Ctrl）
+const SAVE_HINT = '⌘/Ctrl + 回车 保存';
 const QUICK_VARS = ['客户称呼', '我的名字', '店铺名', '商品名', '优惠内容', '群名', '活动时间'];
 
 /** 把话术里的 {变量} 标出来 */
@@ -73,6 +77,10 @@ export function QuickReply({ ctx }: { ctx: Ctx }) {
   const list = useMemo(() => search(lib.scripts, query, cat), [lib, query, cat]);
   const tree = useMemo(() => catTree(lib), [lib]);
   const allCats = useMemo(() => tree.map((n) => n.path), [tree]);
+  const tops = tree.filter((n) => n.depth === 0);
+  const activeTop = cat && cat !== '★' ? cat.split('/')[0] : '';
+  const subs = tree.filter((n) => n.depth === 1 && n.path.startsWith(activeTop + '/') && activeTop !== '');
+  const canEditCat = cat !== '' && cat !== '★';
   const pinnedCount = lib.scripts.filter((s) => s.pinned).length;
   const hasSamples = lib.scripts.some((s) => s.sample);
   useEffect(() => setSel(0), [query, cat]);
@@ -173,7 +181,7 @@ export function QuickReply({ ctx }: { ctx: Ctx }) {
   });
 
   useEffect(() => {
-    document.querySelector('.sq-card.sel')?.scrollIntoView({ block: 'nearest' });
+    document.querySelector('.sq-row.sel')?.scrollIntoView({ block: 'nearest' });
   }, [sel]);
 
   const close = () => { setDialog(null); focusSearch(); };
@@ -183,7 +191,7 @@ export function QuickReply({ ctx }: { ctx: Ctx }) {
       <div className="sq-bar k-panel">
         <label className="sq-search">
           <Search size={16} />
-          <input ref={searchRef} autoFocus className="sq-search-input" value={query} placeholder="搜关键词或拼音首字母（cd = 催单），回车复制" onChange={(e) => setQuery(e.target.value)} onKeyDown={onSearchKey} aria-label="搜索话术" />
+          <input ref={searchRef} autoFocus className="sq-search-input" value={query} placeholder={SEARCH_HINT} onChange={(e) => setQuery(e.target.value)} onKeyDown={onSearchKey} aria-label="搜索话术" />
           {query && <button className="k-icon-btn" aria-label="清空搜索" onClick={() => { setQuery(''); focusSearch(); }}><X size={14} /></button>}
         </label>
         <button className="k-btn primary" onClick={() => setDialog({ kind: 'edit', draft: newDraft(), isNew: true })}><Plus size={15} />新增</button>
@@ -214,56 +222,87 @@ export function QuickReply({ ctx }: { ctx: Ctx }) {
         </div>
       )}
 
-      <div className="sq-body">
-        <nav className="sq-tree k-panel" aria-label="分类">
-          <button className={`sq-node${cat === '' ? ' on' : ''}`} onClick={() => { setCat(''); focusSearch(); }}><span>全部</span><i>{lib.scripts.length}</i></button>
-          <button className={`sq-node${cat === '★' ? ' on' : ''}`} onClick={() => { setCat('★'); focusSearch(); }}><span><Pin size={12} /> 置顶</span><i>{pinnedCount}</i></button>
-          <span className="sq-tree-sep" />
-          {tree.map((n) => (
-            <div key={n.path} className={`sq-node-row${n.depth ? ' sub' : ''}`}>
-              <button className={`sq-node${cat === n.path ? ' on' : ''}`} onClick={() => { setCat(n.path); focusSearch(); }} title={n.path}><span className="k-ellipsis">{n.name}</span><i>{n.count}</i></button>
-              <span className="sq-node-ops">
-                <button className="k-icon-btn" aria-label={`重命名分类 ${n.path}`} title="重命名" onClick={() => setDialog({ kind: 'cat', from: n.path, value: n.path })}><Pencil size={12} /></button>
-                <button className="k-icon-btn" aria-label={`删除分类 ${n.path}`} title="删除分类" onClick={() => {
-                  try { const next = removeCat(libRef.current, n.path); commit(next); if (cat === n.path) setCat(''); } catch (e) { flash('err', (e as Error).message); }
-                }}><Trash2 size={12} /></button>
-              </span>
-            </div>
+      <div className="sq-cats" aria-label="分类">
+        <div className="sq-strip" role="tablist">
+          <button role="tab" aria-selected={cat === ''} className={`sq-chip${cat === '' ? ' on' : ''}`} onClick={() => { setCat(''); focusSearch(); }}>全部<i>{lib.scripts.length}</i></button>
+          <button role="tab" aria-selected={cat === '★'} className={`sq-chip${cat === '★' ? ' on' : ''}`} onClick={() => { setCat('★'); focusSearch(); }}><Pin size={12} />置顶<i>{pinnedCount}</i></button>
+          <span className="sq-sep" />
+          {tops.map((n) => (
+            <button key={n.path} role="tab" aria-selected={activeTop === n.path} className={`sq-chip${activeTop === n.path ? ' on' : ''}`} title={n.path} onClick={() => { setCat(n.path); focusSearch(); }}>{n.name}<i>{n.count}</i></button>
           ))}
-          <button className="sq-node sq-add" onClick={() => setDialog({ kind: 'cat', from: null, value: cat && cat !== '★' && !cat.includes('/') ? cat + '/' : '' })}><span><FolderPlus size={13} /> 新建分类</span></button>
-        </nav>
+          <button className="sq-chip sq-add" onClick={() => setDialog({ kind: 'cat', from: null, value: cat && cat !== '★' && !cat.includes('/') ? cat + '/' : '' })}><FolderPlus size={13} />新建分类</button>
+        </div>
+        {(subs.length > 0 || canEditCat) && (
+          <div className="sq-strip sub">
+            {subs.length > 0 && <button className={`sq-chip small${cat === activeTop ? ' on' : ''}`} onClick={() => { setCat(activeTop); focusSearch(); }}>该分类全部</button>}
+            {subs.map((n) => (
+              <button key={n.path} className={`sq-chip small${cat === n.path ? ' on' : ''}`} onClick={() => { setCat(n.path); focusSearch(); }}>{n.name}<i>{n.count}</i></button>
+            ))}
+            {canEditCat && (
+              <span className="sq-catops">
+                <span className="k-muted">当前：{cat}</span>
+                <button className="k-icon-btn" aria-label={`重命名分类 ${cat}`} title="重命名" onClick={() => setDialog({ kind: 'cat', from: cat, value: cat })}><Pencil size={14} /></button>
+                <button className="k-icon-btn" aria-label={`删除分类 ${cat}`} title="删除分类" onClick={() => {
+                  try { const next = removeCat(libRef.current, cat); commit(next); setCat(''); } catch (e) { flash('err', (e as Error).message); }
+                }}><Trash2 size={14} /></button>
+              </span>
+            )}
+          </div>
+        )}
+      </div>
 
+      <div className="sq-body">
         <section className="sq-list" aria-label="话术列表">
           {!list.length ? (
-            <div className="sq-empty k-panel">
+            <div className="sq-empty">
               <b>{lib.scripts.length ? '没有找到匹配的话术' : '话术库是空的'}</b>
               <span className="k-muted">{lib.scripts.length ? '换个关键词，或者点「新增」把这条话术存起来' : '点「新增」写第一条，或「导入」已有的 Excel / JSON'}</span>
             </div>
           ) : (
-            <div className="sq-cards">
+            <ul className="sq-rows">
               {list.map((s, i) => {
                 const on = s === current;
                 return (
-                  <article key={s.id} className={`sq-card${on ? ' sel' : ''}`} onMouseEnter={() => setSel(i)}>
-                    <header className="sq-card-hd">
-                      <b className="k-ellipsis" title={s.title}>{s.title}</b>
-                      {s.pinned && <span className="sq-tag pin"><Pin size={11} />置顶</span>}
-                      {s.sample && <span className="sq-tag">示例，可删除</span>}
-                    </header>
-                    <button className="sq-text" title="点击复制" onClick={() => copyScript(s)}><Highlight text={s.text} /></button>
-                    <footer className="sq-card-ft">
-                      <span className="sq-cat k-ellipsis">{s.cat}{s.uses ? ` · 用过 ${s.uses} 次` : ''}</span>
-                      <button className="k-icon-btn" aria-label={s.pinned ? '取消置顶' : '置顶'} title={s.pinned ? '取消置顶' : '置顶'} onClick={() => commit(togglePin(lib, s.id))}>{s.pinned ? <PinOff size={14} /> : <Pin size={14} />}</button>
-                      <button className="k-icon-btn" aria-label="编辑" title="编辑" onClick={() => setDialog({ kind: 'edit', draft: { ...s }, isNew: false })}><Pencil size={14} /></button>
-                      <button className="k-icon-btn" aria-label="删除" title="删除" onClick={() => setDialog({ kind: 'confirm', text: `删除话术「${s.title}」？`, ok: '删除', run: () => commit(removeScript(libRef.current, s.id)) })}><Trash2 size={14} /></button>
-                      <button className="k-btn sq-copy" onClick={() => copyScript(s)} title={on ? '在搜索框按回车也能复制这条' : undefined}><Copy size={14} />{on ? '回车复制' : '复制'}</button>
-                    </footer>
-                  </article>
+                  <li key={s.id}>
+                    <button className={`sq-row${on ? ' sel' : ''}`} onMouseEnter={() => setSel(i)} onFocus={() => setSel(i)} onClick={() => { setSel(i); copyScript(s); }} title="点击复制">
+                      <span className="sq-row-hd">
+                        {s.pinned && <Pin size={12} className="sq-pinned" aria-label="已置顶" />}
+                        <b className="k-ellipsis">{s.title}</b>
+                        <span className="sq-row-cat k-ellipsis">{s.cat.split('/').pop()}</span>
+                      </span>
+                      <span className="sq-row-snip k-ellipsis">{s.text.replace(/\s+/g, ' ')}</span>
+                    </button>
+                  </li>
                 );
               })}
-            </div>
+            </ul>
           )}
         </section>
+
+        <aside className="sq-stage" aria-label="话术预览">
+          {current ? (
+            <>
+              <div className="sq-stage-hd">
+                <span className="sq-stage-cat">{current.cat.replace('/', ' › ')}</span>
+                {current.sample && <span className="sq-tag">示例，可删除</span>}
+                {current.uses ? <span className="sq-tag">用过 {current.uses} 次</span> : null}
+              </div>
+              <h2 className="sq-stage-title">{current.title}</h2>
+              <div className="sq-chat">
+                <div className="sq-bubble"><Highlight text={current.text} /></div>
+                <span className="sq-chat-hint">{parseVars(current.text).length ? `含 ${parseVars(current.text).length} 个变量，复制前先填写` : '没有变量，复制后可直接发送'}</span>
+              </div>
+              <div className="sq-stage-ft">
+                <button className="k-btn primary big" onClick={() => copyScript(current)}><Copy size={16} />回车复制</button>
+                <button className="k-btn sq-act" onClick={() => commit(togglePin(lib, current.id))}>{current.pinned ? <PinOff size={15} /> : <Pin size={15} />}{current.pinned ? '取消置顶' : '置顶'}</button>
+                <button className="k-btn sq-act" onClick={() => setDialog({ kind: 'edit', draft: { ...current }, isNew: false })}><Pencil size={15} />编辑</button>
+                <button className="k-btn sq-act" onClick={() => setDialog({ kind: 'confirm', text: `删除话术「${current.title}」？`, ok: '删除', run: () => commit(removeScript(libRef.current, current.id)) })}><Trash2 size={15} />删除</button>
+              </div>
+            </>
+          ) : (
+            <div className="sq-stage-empty k-muted">选中左侧一条话术，这里会按微信聊天气泡的样子显示</div>
+          )}
+        </aside>
       </div>
 
       {dialog && (
@@ -344,7 +383,7 @@ function EditForm({ d, isNew, cats, onCancel, onSave }: { d: Script; isNew: bool
         <span className="sq-insert"><span className="k-help">插入变量：</span>{QUICK_VARS.map((v) => <button type="button" key={v} className="k-chip" onClick={() => insertVar(v)}>{`{${v}}`}</button>)}</span>
       </div>
       <label className="k-toggle"><input type="checkbox" checked={!!s.pinned} onChange={(e) => setS({ ...s, pinned: e.target.checked || undefined })} /><span>置顶（排在最前面）</span></label>
-      <div className="sq-form-ft"><span className="k-help">⌘/Ctrl + 回车 保存</span><button type="button" className="k-btn" onClick={onCancel}>取消</button><button className="k-btn primary" type="submit" disabled={!ok}><Check size={15} />保存</button></div>
+      <div className="sq-form-ft"><span className="k-help">{SAVE_HINT}</span><button type="button" className="k-btn" onClick={onCancel}>取消</button><button className="k-btn primary" type="submit" disabled={!ok}><Check size={15} />保存</button></div>
     </form>
   );
 }
