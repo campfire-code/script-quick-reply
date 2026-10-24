@@ -27,3 +27,34 @@ export function sampleLibrary(): Library {
   const scripts: Script[] = S.map(([cat, title, text, pinned], i) => ({ id: `demo${i + 1}`, cat, title, text, pinned: pinned || undefined, sample: true, updatedAt: t - i * 60_000 }));
   return { version: 1, cats: [...SAMPLE_CATS], scripts };
 }
+
+// ---------- 群欢迎语 / 群公告模板（0.2.0 新增） ----------
+// 文案为本工具作者编写的通用示例，可随意修改；变量用大括号，复制前会弹出填写框。不涉及具体品牌，也不包含任何平台规则。
+export const GROUP_SEED = 'group-v1';
+export const GROUP_CAT = '群欢迎语与公告';
+const G: [string, string, string, boolean?][] = [
+  ['入群欢迎', '入群欢迎：通用', '欢迎 {成员昵称} 加入「{群名}」🎉\n我是群管理员{我的名字}，群里主要分享{群主题}。\n进群后请先看一下群公告，有问题随时 @我～'],
+  ['入群欢迎', '入群欢迎：带福利', '欢迎 {成员昵称} 来到「{群名}」！\n新朋友专属：{入群福利}，领取方式：{领取方式}。\n记得先改一下群昵称，方便大家认识你 😊', true],
+  ['群规公告', '群规公告：标准版', '【{群名}群公告】\n欢迎大家！为了让交流更顺畅，请遵守以下约定：\n1. 文明交流，不发与群主题无关的内容\n2. 未经同意不发广告、不私下拉人\n3. 有问题先看群公告，再 @{我的名字}\n感谢配合 🙏'],
+  ['群规公告', '群规公告：值班时间', '【{群名}值班说明】\n管理员{我的名字}在线时间：{值班时间}。\n非值班时间的留言会在上班后统一回复，紧急事项请联系：{联系方式}。'],
+  ['活动通知', '活动通知：标准版', '【{活动名}】\n时间：{活动时间}\n地点 / 方式：{活动地点}\n内容：{活动内容}\n报名：{报名方式}\n名额有限，先到先得，欢迎转发给身边的朋友～'],
+  ['活动通知', '活动通知：截止提醒', '【{活动名}】报名提醒⏰\n距离报名截止还有最后一段时间，截止时间：{报名截止时间}。\n还没报名的朋友请通过 {报名方式} 尽快完成，错过要等下一期啦。'],
+  ['开课提醒', '开课提醒：开课前', '【{课程名}开课提醒】\n各位同学好！课程将于 {开课时间} 开始，上课方式：{上课方式}。\n请提前 10 分钟进入，资料已发在群文件，有问题请联系{我的名字}。'],
+  ['开课提醒', '开课提醒：课后作业', '【{课程名}课后提醒】\n今天的内容已结束，课后任务：{作业内容}，请在 {提交时间} 前提交到{提交方式}。\n有不明白的地方，欢迎在群里提问。'],
+];
+export const GROUP_SUBCATS = ['入群欢迎', '群规公告', '活动通知', '开课提醒'];
+
+export function groupScripts(): Script[] {
+  const t = Date.UTC(2026, 9, 24);
+  return G.map(([sub, title, text, pinned], i) => ({ id: `grp${i + 1}`, cat: `${GROUP_CAT}/${sub}`, title, text, pinned: pinned || undefined, sample: true, updatedAt: t - i * 60_000 }));
+}
+
+/** 把群欢迎语 / 群公告模板放进话术库：每个库只放一次（记在 seeded 里），用户删掉后不会再出现；已有同分类同内容的不重复添加 */
+export function seedGroupTemplates(lib: Library): Library {
+  if (lib.seeded?.includes(GROUP_SEED)) return lib;
+  const have = new Set(lib.scripts.map((s) => `${s.cat}\u0000${s.text}`));
+  const fresh = groupScripts().filter((s) => !have.has(`${s.cat}\u0000${s.text}`));
+  const cats = [...lib.cats];
+  for (const c of [GROUP_CAT, ...GROUP_SUBCATS.map((x) => `${GROUP_CAT}/${x}`)]) if (!cats.includes(c)) cats.push(c);
+  return { ...lib, cats, scripts: [...lib.scripts, ...fresh], seeded: [...(lib.seeded ?? []), GROUP_SEED] };
+}

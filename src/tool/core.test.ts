@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
-  addCat, catTree, fillVars, fromJson, fromRows, initials, markUsed, mergeImport, normCat, parseVars, removeCat, removeSamples, renameCat, search, toRows,
+  addCat, catTree, fillVars, fromJson, normalizeText, fromRows, initials, markUsed, mergeImport, normCat, parseVars, removeCat, removeSamples, renameCat, search, toRows,
   togglePin, upsert, validLibrary, type Library, type Script,
 } from './core';
-import { sampleLibrary } from './samples';
+import { GROUP_CAT, GROUP_SEED, GROUP_SUBCATS, groupScripts, sampleLibrary, seedGroupTemplates } from './samples';
 
 const sc = (id: string, cat: string, title: string, text: string, extra: Partial<Script> = {}): Script => ({ id, cat, title, text, updatedAt: 0, ...extra });
 const lib = (scripts: Script[], cats: string[] = []): Library => ({ version: 1, cats, scripts });
@@ -136,5 +136,52 @@ describe('内置示例', () => {
     expect(l.scripts.every((s) => s.sample)).toBe(true);
     const tops = new Set(l.scripts.map((s) => s.cat.split('/')[0]));
     expect([...tops]).toEqual(['开场', '产品介绍', '价格异议', '催单', '售后', '复购']);
+  });
+});
+
+describe('群欢迎语 / 群公告模板（0.2.0）', () => {
+  const base = (): Library => ({ version: 1, cats: ['开场'], scripts: [sc('a', '开场', '旧话术', '你好')] });
+  it('内置 8 条模板，分四个二级分类，全部有变量，且都标示例', () => {
+    const g = groupScripts();
+    expect(g).toHaveLength(8);
+    expect(new Set(g.map((s) => s.cat))).toEqual(new Set(GROUP_SUBCATS.map((c) => `${GROUP_CAT}/${c}`)));
+    expect(g.every((s) => s.sample && parseVars(s.text).length >= 2)).toBe(true);
+    expect(new Set(g.map((s) => s.id)).size).toBe(8);
+  });
+  it('旧库补入一次：保留原有话术，登记分类和 seeded', () => {
+    const l = seedGroupTemplates(base());
+    expect(l.scripts).toHaveLength(9);
+    expect(l.scripts[0].id).toBe('a');
+    expect(l.seeded).toEqual([GROUP_SEED]);
+    expect(catTree(l).find((n) => n.path === GROUP_CAT)?.count).toBe(8);
+  });
+  it('已经补过的库不再补；用户删掉模板后也不会再出现', () => {
+    const once = seedGroupTemplates(base());
+    expect(seedGroupTemplates(once)).toBe(once);
+    const deleted = removeSamples(once);
+    expect(seedGroupTemplates(deleted).scripts.length).toBe(deleted.scripts.length);
+  });
+  it('seeded 能通过本机存储校验保留下来', () => {
+    expect(validLibrary(seedGroupTemplates(base()))?.seeded).toEqual([GROUP_SEED]);
+  });
+  it('分类和搜索：搜「群」「入群欢迎」能找到；拼音首字母 rqhy 命中入群欢迎', () => {
+    const l = seedGroupTemplates(base());
+    expect(search(l.scripts, '入群欢迎').length).toBe(2);
+    expect(search(l.scripts, 'rqhy').length).toBeGreaterThanOrEqual(2);
+    expect(search(l.scripts, '', GROUP_CAT).length).toBe(8);
+  });
+  it('变量替换：{群名}、{活动时间} 等替换为填写的值，没填的保留原样', () => {
+    const t = groupScripts().find((s) => s.title === '活动通知：标准版')!;
+    const out = fillVars(t.text, { 活动名: '示例沙龙', 活动时间: '10 月 30 日 19:30', 活动地点: '线上' });
+    expect(out).toContain('【示例沙龙】');
+    expect(out).toContain('时间：10 月 30 日 19:30');
+    expect(out).toContain('内容：{活动内容}');
+    const w = groupScripts().find((s) => s.title === '入群欢迎：通用')!;
+    expect(fillVars(w.text, { 群名: '示例群', 成员昵称: '小明' })).toContain('欢迎 小明 加入「示例群」');
+  });
+  it('输出标准文本：统一换行、去行尾空格、压缩多余空行、去首尾空白', () => {
+    expect(normalizeText('  第一行  \r\n第二行\t\r\n\r\n\r\n\r\n第三行\r\n')).toBe('第一行\n第二行\n\n第三行');
+    const t = groupScripts()[0];
+    expect(normalizeText(fillVars(t.text, { 群名: '示例群', 成员昵称: '小明', 我的名字: '小管', 群主题: '示例主题' }))).not.toMatch(/\r| \n/);
   });
 });

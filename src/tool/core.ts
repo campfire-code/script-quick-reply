@@ -19,6 +19,8 @@ export interface Library {
   /** 分类顺序（包括还没有话术的空分类） */
   cats: string[];
   scripts: Script[];
+  /** 已经放进库里的内置模板包（如 'group-v1'），避免用户删掉后下次打开又冒出来 */
+  seeded?: string[];
 }
 
 let seq = 0;
@@ -133,6 +135,11 @@ export function parseVars(text: string): string[] {
     if (name && !out.includes(name)) out.push(name);
   }
   return out;
+}
+
+/** 输出标准文本：统一换行为 \n，去掉每行行尾空格，连续空行压成一行，去掉首尾空白 */
+export function normalizeText(text: string): string {
+  return text.replace(/\r\n?/g, '\n').split('\n').map((l) => l.replace(/[ \t\u3000]+$/, '')).join('\n').replace(/\n{3,}/g, '\n\n').trim();
 }
 
 /** 把变量替换成填写的值；没填的变量原样保留，避免误发出空白 */
@@ -282,7 +289,8 @@ export function validLibrary(v: unknown): Library | null {
   const o = v as Library;
   if (!o || o.version !== 1 || !Array.isArray(o.cats) || !Array.isArray(o.scripts)) return null;
   const scripts = o.scripts.filter((s) => s && typeof s.id === 'string' && typeof s.text === 'string' && typeof s.cat === 'string');
-  return { version: 1, cats: o.cats.filter((c) => typeof c === 'string'), scripts: scripts.map((s) => ({ ...s, title: String(s.title ?? ''), updatedAt: Number(s.updatedAt) || 0 })) };
+  const seeded = Array.isArray(o.seeded) ? o.seeded.filter((c) => typeof c === 'string') : undefined;
+  return { version: 1, seeded, cats: o.cats.filter((c) => typeof c === 'string'), scripts: scripts.map((s) => ({ ...s, title: String(s.title ?? ''), updatedAt: Number(s.updatedAt) || 0 })) };
 }
 
 export const toJson = (lib: Library) => JSON.stringify({ ...lib, exportedBy: '篝火 · 私域话术库快捷回复' }, null, 2);

@@ -1,21 +1,24 @@
 // 话术库保存在本机应用数据目录的 settings.json（kit 的 settingsStore），键名 library.w12。
 import { settingsStore } from '../kit/platform';
 import { validLibrary, type Library } from './core';
-import { sampleLibrary } from './samples';
+import { sampleLibrary, seedGroupTemplates } from './samples';
 
 const KEY = 'library.w12';
 const VARS_KEY = 'vars.w12';
 
-/** 读取话术库；第一次打开或读不到（例如开发预览）时用内置示例 */
+/** 读取话术库；第一次打开或读不到（例如开发预览）时用内置示例。0.2.0 起旧库也会补入一次「群欢迎语与公告」模板（saved=false 时由界面写回） */
 export async function loadLibrary(): Promise<{ lib: Library; saved: boolean }> {
   try {
     const st = await settingsStore();
     const v = validLibrary(await st.get(KEY));
-    if (v) return { lib: v, saved: true };
+    if (v) {
+      const seeded = seedGroupTemplates(v);
+      return { lib: seeded, saved: seeded === v };
+    }
   } catch {
     /* 预览环境没有本机存储 */
   }
-  return { lib: sampleLibrary(), saved: false };
+  return { lib: seedGroupTemplates(sampleLibrary()), saved: false };
 }
 
 export async function saveLibrary(lib: Library): Promise<boolean> {

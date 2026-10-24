@@ -5,7 +5,7 @@ import { save } from '@tauri-apps/plugin-dialog';
 import type { RunContext } from '../kit/types';
 import { onFileDrop, pickFiles, reveal } from '../kit/platform';
 import {
-  addCat, catTree, fillVars, markUsed, newId, normCat, parseVars, removeCat, removeSamples, removeScript, renameCat, search, togglePin, upsert,
+  addCat, catTree, fillVars, markUsed, newId, normCat, normalizeText, parseVars, removeCat, removeSamples, removeScript, renameCat, search, togglePin, upsert,
   type Library, type Script,
 } from './core';
 import { exportFile, importFile, IMPORT_EXT, type FileIO } from './io';
@@ -21,7 +21,7 @@ type Dialog =
   | { kind: 'cat'; from: string | null; value: string }
   | null;
 
-const QUICK_VARS = ['客户称呼', '我的名字', '店铺名', '商品名', '优惠内容'];
+const QUICK_VARS = ['客户称呼', '我的名字', '店铺名', '商品名', '优惠内容', '群名', '活动时间'];
 
 /** 把话术里的 {变量} 标出来 */
 function Highlight({ text }: { text: string }) {
@@ -278,7 +278,7 @@ export function QuickReply({ ctx }: { ctx: Ctx }) {
               const v = { ...vars, ...values };
               setVars(v);
               saveVars(v);
-              writeClipboard(fillVars(dialog.script.text, values), dialog.script);
+              writeClipboard(normalizeText(fillVars(dialog.script.text, values)), dialog.script);
               close();
             }} />}
             {dialog.kind === 'confirm' && (
